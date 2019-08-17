@@ -1,10 +1,23 @@
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.streaming.kafka010.ConsumerStrategies.Subscribe
 import org.apache.spark.streaming.kafka010.LocationStrategies.PreferConsistent
 import org.apache.spark.streaming.kafka010._
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 
 object SparkConsumer {
+
+  def saver(df: DataFrame): String = {
+    try {
+      df.repartition(1).write.mode("append").csv("output.csv")
+      return "done"
+    }catch {
+      case exception: Exception => {
+        return "not done as "+exception
+      }
+
+    }
+
+  }
   def main(args: Array[String]): Unit = {
     val ss = SparkSession.builder()
       .appName("consumer")
@@ -29,6 +42,8 @@ object SparkConsumer {
       PreferConsistent,
       Subscribe[String, String](topics, kafkaParams)
     )
+//    import ss.sqlContext.implicits._
+    import ss.sqlContext.implicits._
     val pyPath = "/home/admin1/IdeaProjects/latiket_kafka/src/main/python/Predictor.py"
     val mappedData = stream.map(x => (x.value().toString))
     mappedData.foreachRDD(
@@ -36,8 +51,15 @@ object SparkConsumer {
 //        ss.sqlContext.read.json(x).rdd.collect().foreach(y=>
 //          ss.sparkContext.makeRDD(List(y.toString().replaceAll(","," ").replace("[","").replace("]","")))
 //            x.collect().foreach(y => ss.sparkContext.makeRDD(List(y)).pipe(pyPath).collect().foreach(println))
-          x.collect().foreach(y => ss.sparkContext.makeRDD(List(y)).pipe(pyPath).collect().foreach(println))
+          x.collect().foreach(y => println(
+            saver(ss.sparkContext.makeRDD(List(y)).pipe(pyPath).toDF().coalesce(1))
+          )
 
+            //            z=>
+//              Seq(z.split(" ")).toDF("open","high","low","close","volume","pred").show()
+
+          )
+//            .toDF.coalesce(1).show())
     //              x.pipe(pyPath).collect().foreach(println)
 
     //        )
