@@ -4,7 +4,7 @@
 		module="kafkastreaming_2.12"
 		revision="0.1"
 		status="integration"
-		publication="20190813151145"
+		publication="20190821105633"
 	>
 		<description>
 		kafkaStreaming
